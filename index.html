@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EduVerify</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes popIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      .animation-fadeIn {
+        animation: fadeIn 0.5s ease-in-out;
+      }
+      .animation-popIn {
+        animation: popIn 0.3s ease-out;
+      }
+      
+      /* New Animations for Landing Page */
+      @keyframes drift {
+        0% { transform: translateY(0) translateX(0); opacity: 1; }
+        100% { transform: translateY(-120vh) translateX(10vw); opacity: 0; }
+      }
+
+      @keyframes slideUpFadeIn {
+          from { opacity: 0; transform: translateY(1em); }
+          to { opacity: 1; transform: translateY(0); }
+      }
+      
+      @keyframes pulseGlow {
+        0%, 100% {
+          filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.4)) drop-shadow(0 0 15px rgba(59, 130, 246, 0.3));
+        }
+        50% {
+          filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.6)) drop-shadow(0 0 25px rgba(59, 130, 246, 0.5));
+        }
+      }
+      
+      @keyframes float3D {
+          0% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
+          50% { transform: translateY(-30px) rotateX(20deg) rotateY(20deg); }
+          100% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
+      }
+
+      .headline-char, .subtitle-animate, .buttons-animate {
+          opacity: 0;
+          animation: slideUpFadeIn 0.6s ease-out forwards;
+      }
+
+      .background-shapes span {
+        position: absolute;
+        display: block;
+        width: 20px;
+        height: 20px;
+        background: rgba(229, 231, 235, 0.4); /* bg-gray-200 with opacity */
+        bottom: -150px;
+        animation: drift 20s linear infinite;
+        border-radius: 4px;
+      }
+
+      .glowing-element {
+        position: absolute;
+        z-index: 1;
+        animation: float3D 8s ease-in-out infinite, pulseGlow 4s ease-in-out infinite;
+      }
+
+
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f9fafb; /* bg-gray-50 */
+        color: #1f2937; /* bg-gray-800 */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+
+        /* Subtle background pattern */
+        background-image: radial-gradient(#e0e7ff 1px, transparent 1px); /* A light indigo/blue-ish dot */
+        background-size: 20px 20px;
+      }
+    </style>
+    <!-- pdf.js for PDF parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+      if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+      }
+    </script>
+    <!-- mammoth.js for DOCX parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.4",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.27.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
+    "@heroicons/react/": "https://aistudiocdn.com/@heroicons/react@^2.2.0/"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

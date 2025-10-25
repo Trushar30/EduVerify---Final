@@ -1,0 +1,5 @@
+{
+  "name": "EduVerify: Academic Integrity Platform",
+  "description": "An integrated web platform for educational institutions to manage student assignments, automate academic integrity checks (plagiarism and AI-generated content), and streamline the feedback process.",
+  "requestFramePermissions": []
+}
