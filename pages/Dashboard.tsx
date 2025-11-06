@@ -27,8 +27,8 @@ const Dashboard: React.FC = () => {
                 return (
                     <Routes>
                         <Route index element={<AdminDashboard />} />
-                        <Route path="users" element={<UserManagementPage />} />
-                        <Route path="classes" element={<AdminClassManagementPage />} />
+                        <Route path="users" element={<ProtectedRoute allowedRoles={[Role.ADMIN]}><UserManagementPage /></ProtectedRoute>} />
+                        <Route path="classes" element={<ProtectedRoute allowedRoles={[Role.ADMIN]}><AdminClassManagementPage /></ProtectedRoute>} />
                         <Route path="profile" element={<ProfilePage />} />
                         <Route path="*" element={<Navigate to="/dashboard" />} />
                     </Routes>
@@ -37,9 +37,9 @@ const Dashboard: React.FC = () => {
                 return (
                     <Routes>
                         <Route index element={<TeacherDashboard />} />
-                        <Route path="classes" element={<TeacherClassManagementPage />} />
-                        <Route path="classes/:classId" element={<TeacherClassDetailPage />} />
-                        <Route path="classes/:classId/assignments/:assignmentId" element={<TeacherAssignmentDetailPage />} />
+                        <Route path="classes" element={<ProtectedRoute allowedRoles={[Role.TEACHER]}><TeacherClassManagementPage /></ProtectedRoute>} />
+                        <Route path="classes/:classId" element={<ProtectedRoute allowedRoles={[Role.TEACHER]}><TeacherClassDetailPage /></ProtectedRoute>} />
+                        <Route path="classes/:classId/assignments/:assignmentId" element={<ProtectedRoute allowedRoles={[Role.TEACHER]}><TeacherAssignmentDetailPage /></ProtectedRoute>} />
                         <Route path="notifications" element={<NotificationsPage />} />
                         <Route path="profile" element={<ProfilePage />} />
                         <Route path="*" element={<Navigate to="/dashboard" />} />
@@ -49,9 +49,9 @@ const Dashboard: React.FC = () => {
                 return (
                     <Routes>
                         <Route index element={<StudentDashboard />} />
-                        <Route path="classes" element={<StudentClassManagementPage />} />
-                        <Route path="classes/:classId" element={<StudentClassDetailPage />} />
-                        <Route path="join-class" element={<JoinClassPage />} />
+                        <Route path="classes" element={<ProtectedRoute allowedRoles={[Role.STUDENT]}><StudentClassManagementPage /></ProtectedRoute>} />
+                        <Route path="classes/:classId" element={<ProtectedRoute allowedRoles={[Role.STUDENT]}><StudentClassDetailPage /></ProtectedRoute>} />
+                        <Route path="join-class" element={<ProtectedRoute allowedRoles={[Role.STUDENT]}><JoinClassPage /></ProtectedRoute>} />
                         <Route path="notifications" element={<NotificationsPage />} />
                         <Route path="profile" element={<ProfilePage />} />
                         <Route path="*" element={<Navigate to="/dashboard" />} />
