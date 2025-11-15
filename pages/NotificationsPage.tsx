@@ -4,7 +4,7 @@ import { useData } from '../context/DataContext';
 import { Link } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import { NotificationType } from '../types';
-import { BellIcon, CheckCircleIcon, DocumentPlusIcon, DocumentCheckIcon, ChatBubbleLeftEllipsisIcon, AcademicCapIcon } from '@heroicons/react/24/outline';
+import { BellIcon, CheckCircleIcon, DocumentPlusIcon, DocumentCheckIcon, ChatBubbleLeftEllipsisIcon, AcademicCapIcon, SparklesIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 
 const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
@@ -14,8 +14,12 @@ const getNotificationIcon = (type: NotificationType) => {
             return <DocumentCheckIcon className="w-6 h-6 text-indigo-500" />;
         case NotificationType.NEW_FEEDBACK:
             return <ChatBubbleLeftEllipsisIcon className="w-6 h-6 text-amber-500" />;
+        case NotificationType.TEACHER_FEEDBACK:
+            return <ChatBubbleLeftRightIcon className="w-6 h-6 text-indigo-500" />;
         case NotificationType.REPORT_PUBLISHED:
             return <AcademicCapIcon className="w-6 h-6 text-emerald-500" />;
+        case NotificationType.ACHIEVEMENT_UNLOCKED:
+            return <SparklesIcon className="w-6 h-6 text-yellow-500" />;
         default:
             return <BellIcon className="w-6 h-6 text-gray-500" />;
     }

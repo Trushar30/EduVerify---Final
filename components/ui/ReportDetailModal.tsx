@@ -1,7 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Report, Submission, User } from '../../types';
 import Modal from './Modal';
 import DoughnutChart from './DoughnutChart';
+import { useToast } from '../../context/ToastContext';
 import { LinkIcon, SparklesIcon, UsersIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 
 interface ReportDetailModalProps {
@@ -49,58 +50,68 @@ const ScoreIndicator: React.FC<{ score: number; title: string }> = ({ score, tit
 
 const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ isOpen, onClose, onPublish, report, submission, student }) => {
     const reportContentRef = useRef<HTMLDivElement>(null);
+    const [isExporting, setIsExporting] = useState(false);
+    const { addToast } = useToast();
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
         if (!reportContentRef.current || !student || !submission || !window.html2canvas || !window.jspdf) {
-            alert('PDF generation library not loaded or required data is missing.');
+            addToast('PDF generation library not loaded or data is missing.', 'error');
             return;
         }
-
+    
+        setIsExporting(true);
+    
         const reportElement = reportContentRef.current;
         const { jsPDF } = window.jspdf;
-
-        window.html2canvas(reportElement, {
-            scale: 2, // Higher scale for better quality
-            useCORS: true,
-        }).then((canvas: HTMLCanvasElement) => {
+    
+        try {
+            const canvas = await window.html2canvas(reportElement, {
+                scale: 2, // Higher scale for better quality
+                useCORS: true,
+                backgroundColor: '#ffffff', // Ensure a solid background for capture
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: reportElement.scrollWidth,
+                windowHeight: reportElement.scrollHeight,
+            });
+    
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
-                orientation: 'p',
-                unit: 'px',
+                orientation: 'portrait',
+                unit: 'pt', // Use points for better scaling and standard PDF units
                 format: 'a4',
-                putOnlyUsedFonts: true,
-                floatPrecision: 16
             });
-            
-            const imgProps= pdf.getImageProperties(imgData);
+    
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            
-            const imgWidth = imgProps.width;
-            const imgHeight = imgProps.height;
-            
-            const ratio = imgWidth / imgHeight;
-            const width = pdfWidth;
-            const height = width / ratio;
+            const margin = 40; // 40pt margin on all sides
     
+            const imgProps = pdf.getImageProperties(imgData);
+            const contentWidth = pdfWidth - margin * 2;
+            const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
+            
+            let heightLeft = contentHeight;
             let position = 0;
-            let heightLeft = height;
     
-            pdf.addImage(imgData, 'PNG', 0, position, width, height);
-            heightLeft -= pdfHeight;
+            // Add the first page
+            pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, contentHeight);
+            heightLeft -= (pdfHeight - margin * 2);
     
+            // Add subsequent pages if content overflows
             while (heightLeft > 0) {
-                position -= pdfHeight;
+                position -= (pdfHeight - margin); // Adjust position for the next page
                 pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, width, height);
-                heightLeft -= pdfHeight;
+                pdf.addImage(imgData, 'PNG', margin, position + margin, contentWidth, contentHeight);
+                heightLeft -= (pdfHeight - margin * 2);
             }
     
             pdf.save(`Report-${student.name}-${submission.fileName.split('.')[0]}.pdf`);
-        }).catch((err: Error) => {
+        } catch (err) {
             console.error("Error generating PDF:", err);
-            alert("Sorry, there was an error generating the PDF.");
-        });
+            addToast("Sorry, there was an error generating the PDF.", 'error');
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     if (!isOpen || !report || !submission || !student) return null;
@@ -112,8 +123,8 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ isOpen, onClose, 
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={`Analysis Report for ${student.name}`} maxWidth="max-w-2xl">
-            <div ref={reportContentRef}>
-                <div className="space-y-6 p-1"> {/* Added padding for better PDF capture */}
+            <div ref={reportContentRef} className="bg-white">
+                <div className="space-y-6 p-1"> {/* Padding for better PDF capture */}
                     <p className="text-sm text-gray-500">
                         Submission: <span className="font-semibold text-gray-700">{submission.fileName}</span>
                     </p>
@@ -181,10 +192,23 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ isOpen, onClose, 
             <div className="mt-6 flex justify-between items-center border-t border-gray-200 pt-5">
                 <button 
                     onClick={handleExportPdf}
-                    className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 shadow-sm text-sm font-semibold"
+                    disabled={isExporting}
+                    className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 shadow-sm text-sm font-semibold disabled:bg-gray-100 disabled:cursor-wait"
                 >
-                    <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
-                    Export PDF
+                    {isExporting ? (
+                        <>
+                         <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                         </svg>
+                         Exporting...
+                        </>
+                    ) : (
+                        <>
+                            <ArrowDownTrayIcon className="w-5 h-5 mr-2" />
+                            Export PDF
+                        </>
+                    )}
                 </button>
                 <div className="flex gap-3">
                     <button onClick={onClose} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 shadow-sm">Close</button>

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { User, Role, Class, Assignment, Submission, Report, Feedback, Notification, UserDetails, NotificationType } from '../types';
 import { DUMMY_USERS } from '../data/dummyData'; // Import from a separate file
+import { checkAndAwardAchievements } from '../services/achievementService';
 
 // Dummy Data
 export const DUMMY_CLASSES: Class[] = [
@@ -52,6 +53,7 @@ type Action =
     | { type: 'JOIN_CLASS'; payload: { userId: string, joinCode: string } }
     | { type: 'CREATE_ASSIGNMENT'; payload: Omit<Assignment, 'id'> }
     | { type: 'ADD_FEEDBACK'; payload: Omit<Feedback, 'id' | 'timestamp'> }
+    | { type: 'ADD_TEACHER_FEEDBACK'; payload: { submissionId: string; feedback: string } }
     | { type: 'EDIT_CLASS'; payload: { classId: string, name: string } }
     | { type: 'REMOVE_STUDENT'; payload: { classId: string, studentId: string } }
     | { type: 'MARK_NOTIFICATION_READ'; payload: { notificationId: string } }
@@ -93,7 +95,19 @@ function dataReducer(state: DataState, action: Action): DataState {
                 type: NotificationType.NEW_SUBMISSION,
                 linkTo: `/dashboard/classes/${classInfo.id}/assignments/${assignment.id}`
             };
-            return { ...state, submissions: [...state.submissions, action.payload], notifications: [...state.notifications, newNotification] };
+
+            // Temporarily add new submission to state for achievement check
+            const tempState = { ...state, submissions: [...state.submissions, action.payload] };
+            const achievementResults = checkAndAwardAchievements(tempState, student.id, 'submission', { submission: action.payload, assignment });
+
+            const updatedUsers = state.users.map(u => u.id === student.id ? { ...u, achievements: achievementResults.finalAchievements } : u);
+
+            return { 
+                ...state, 
+                submissions: [...state.submissions, action.payload], 
+                notifications: [...state.notifications, newNotification, ...achievementResults.newNotifications],
+                users: updatedUsers
+            };
         }
         case 'ADD_REPORT':
             return { 
@@ -108,6 +122,8 @@ function dataReducer(state: DataState, action: Action): DataState {
             if (!submission) return state;
             const assignment = state.assignments.find(a => a.id === submission.assignmentId);
             const classInfo = state.classes.find(c => c.id === assignment?.classId);
+            const student = state.users.find(u => u.id === action.payload.studentId);
+            if (!student) return state;
             
             const newNotification: Notification = {
                 id: `notif-${Date.now()}`,
@@ -118,11 +134,18 @@ function dataReducer(state: DataState, action: Action): DataState {
                 type: NotificationType.REPORT_PUBLISHED,
                 linkTo: `/dashboard/classes/${classInfo?.id}`
             };
+            
+            // Create a temporary state with the newly published report to pass to the service
+            const tempState = { ...state, reports: state.reports.map(r => r.id === action.payload.reportId ? { ...r, status: 'PUBLISHED' as const } : r) };
+            const achievementResults = checkAndAwardAchievements(tempState, student.id, 'report', { report: { ...publishedReport, status: 'PUBLISHED' } });
+
+            const updatedUsers = state.users.map(u => u.id === student.id ? { ...u, achievements: achievementResults.finalAchievements } : u);
 
             return { 
                 ...state, 
-                reports: state.reports.map(r => r.id === action.payload.reportId ? { ...r, status: 'PUBLISHED' } : r),
-                notifications: [...state.notifications, newNotification]
+                reports: tempState.reports,
+                notifications: [...state.notifications, newNotification, ...achievementResults.newNotifications],
+                users: updatedUsers,
             };
         }
         case 'ADD_USER':
@@ -237,7 +260,52 @@ function dataReducer(state: DataState, action: Action): DataState {
                 type: NotificationType.NEW_FEEDBACK,
                 linkTo: `/dashboard/classes/${classInfo?.id}/assignments/${assignment?.id}`,
             };
-            return { ...state, feedback: [...state.feedback, newFeedback], notifications: [...state.notifications, newNotification] };
+
+            if (!student) {
+                return { ...state, feedback: [...state.feedback, newFeedback], notifications: [...state.notifications, newNotification] };
+            }
+
+            // Temporarily add feedback to state for achievement check
+            const tempState = { ...state, feedback: [...state.feedback, newFeedback] };
+            const achievementResults = checkAndAwardAchievements(tempState, student.id, 'feedback', {});
+            
+            const updatedUsers = state.users.map(u => u.id === student.id ? { ...u, achievements: achievementResults.finalAchievements } : u);
+
+            return { 
+                ...state, 
+                feedback: [...state.feedback, newFeedback], 
+                notifications: [...state.notifications, newNotification, ...achievementResults.newNotifications],
+                users: updatedUsers
+            };
+        }
+        case 'ADD_TEACHER_FEEDBACK': {
+            const submission = state.submissions.find(s => s.id === action.payload.submissionId);
+            if (!submission) return state;
+
+            const assignment = state.assignments.find(a => a.id === submission.assignmentId);
+            const classInfo = state.classes.find(c => c.id === assignment?.classId);
+
+            if (!assignment || !classInfo) return state;
+
+            const newNotification: Notification = {
+                id: `notif-${Date.now()}`,
+                userId: submission.studentId,
+                message: `Your teacher left feedback on your submission for "${assignment.title}".`,
+                timestamp: new Date().toISOString(),
+                read: false,
+                type: NotificationType.TEACHER_FEEDBACK,
+                linkTo: `/dashboard/classes/${classInfo.id}`
+            };
+
+            return {
+                ...state,
+                submissions: state.submissions.map(s =>
+                    s.id === action.payload.submissionId
+                        ? { ...s, teacherFeedback: action.payload.feedback }
+                        : s
+                ),
+                notifications: [...state.notifications, newNotification]
+            };
         }
         case 'MARK_NOTIFICATION_READ':
             return {

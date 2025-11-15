@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
+import { useToast } from '../../context/ToastContext';
 import { Submission, Report, User } from '../../types';
 import ReportDetailModal from '../../components/ui/ReportDetailModal';
 import { analyzeContent } from '../../services/geminiService';
-import { ArrowLeftIcon, DocumentMagnifyingGlassIcon, EyeIcon, DocumentTextIcon, DocumentIcon, ArrowUpIcon, ArrowDownIcon, ArrowsUpDownIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, DocumentMagnifyingGlassIcon, EyeIcon, DocumentTextIcon, DocumentIcon, ArrowUpIcon, ArrowDownIcon, ArrowsUpDownIcon, ArrowDownTrayIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import SubmissionViewModal from '../../components/ui/SubmissionViewModal';
 import Card from '../../components/ui/Card';
+import Modal from '../../components/ui/Modal';
 
 const getFileTypeIcon = (fileName: string) => {
     const extension = fileName.split('.').pop()?.toLowerCase();
@@ -27,6 +29,7 @@ const getFileTypeIcon = (fileName: string) => {
 const TeacherAssignmentDetailPage: React.FC = () => {
     const { classId, assignmentId } = useParams<{ classId: string; assignmentId: string }>();
     const { state, dispatch } = useData();
+    const { addToast } = useToast();
 
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [viewingSubmission, setViewingSubmission] = useState<Submission | null>(null);
@@ -38,6 +41,9 @@ const TeacherAssignmentDetailPage: React.FC = () => {
     type SortKey = 'name' | 'date' | 'status';
     type SortDirection = 'ascending' | 'descending';
     const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: SortDirection }>({ key: 'name', direction: 'ascending' });
+
+    const [feedbackSubmission, setFeedbackSubmission] = useState<Submission | null>(null);
+    const [feedbackText, setFeedbackText] = useState('');
 
 
     const currentClass = state.classes.find(c => c.id === classId);
@@ -123,10 +129,12 @@ const TeacherAssignmentDetailPage: React.FC = () => {
     };
 
     const handleAnalyze = async (submission: Submission) => {
+        addToast(`Starting analysis for ${submission.fileName}...`, 'info');
         try {
             await runAnalysis(submission);
+            addToast(`Analysis complete for ${submission.fileName}.`, 'success');
         } catch (e) {
-            alert(`Analysis failed for ${submission.fileName}.`);
+            addToast(`Analysis failed for ${submission.fileName}.`, 'error');
         }
     };
 
@@ -176,7 +184,7 @@ const TeacherAssignmentDetailPage: React.FC = () => {
             .map(item => item.submission as Submission);
         
         if (submissionsToAnalyze.length === 0) {
-            alert("No new submissions selected for analysis.");
+            addToast("No new submissions selected for analysis.", 'info');
             return;
         }
     
@@ -192,7 +200,7 @@ const TeacherAssignmentDetailPage: React.FC = () => {
         if (failedCount > 0) {
             summaryMessage += ` ${failedCount} failed.`;
         }
-        alert(summaryMessage);
+        addToast(summaryMessage, failedCount > 0 ? 'error' : 'success');
         
         setIsBatchAnalyzing(false);
         setSelectedStudentIds([]);
@@ -204,7 +212,7 @@ const TeacherAssignmentDetailPage: React.FC = () => {
             .filter(item => item.report && item.report.status === 'PENDING');
         
         if (reportsToPublish.length === 0) {
-            alert("No pending reports selected for publishing.");
+            addToast("No pending reports selected for publishing.", 'info');
             return;
         }
         
@@ -215,7 +223,7 @@ const TeacherAssignmentDetailPage: React.FC = () => {
             handlePublish(report!.id, studentId);
         });
     
-        alert(`${reportsToPublish.length} report(s) have been successfully published.`);
+        addToast(`${reportsToPublish.length} report(s) have been successfully published.`, 'success');
         setSelectedStudentIds([]);
     };
     
@@ -279,6 +287,25 @@ const TeacherAssignmentDetailPage: React.FC = () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     };
+
+    const openFeedbackModal = (submission: Submission) => {
+        setFeedbackSubmission(submission);
+        setFeedbackText(submission.teacherFeedback || '');
+    };
+
+    const closeFeedbackModal = () => {
+        setFeedbackSubmission(null);
+        setFeedbackText('');
+    };
+
+    const saveFeedback = () => {
+        if (feedbackSubmission) {
+            dispatch({ type: 'ADD_TEACHER_FEEDBACK', payload: { submissionId: feedbackSubmission.id, feedback: feedbackText } });
+            addToast('Feedback saved successfully!', 'success');
+            closeFeedbackModal();
+        }
+    };
+
 
     const displayedSubmittedStudents = displayedStudents.filter(student => submissions.some(s => s.studentId === student.id));
 
@@ -400,7 +427,7 @@ const TeacherAssignmentDetailPage: React.FC = () => {
                                 const { text, color, submission, report } = getSubmissionStatus(student.id);
                                 const isAnalyzing = submission ? analyzingIds.includes(submission.id) : false;
                                 return (
-                                    <tr key={student.id} className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${isAnalyzing ? 'bg-blue-100 opacity-50 cursor-not-allowed' : ''}`}>
+                                    <tr key={student.id} className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${isAnalyzing ? 'bg-blue-50 opacity-70' : ''}`}>
                                         <td className="w-4 p-4">
                                             {submission && (
                                                 <div className="flex items-center">
@@ -425,31 +452,39 @@ const TeacherAssignmentDetailPage: React.FC = () => {
                                             )}
                                         </td>
                                         <td className="px-6 py-4">{submission ? new Date(submission.submittedAt).toLocaleString() : 'N/A'}</td>
-                                        <td className="px-6 py-4 font-semibold">
+                                        <td className="px-6 py-4">
                                             {isAnalyzing ? (
-                                                <div className="flex items-center text-blue-600">
-                                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    <span>Analyzing...</span>
+                                                <div>
+                                                    <div className="flex items-center text-blue-600 font-semibold text-xs">
+                                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        <span>ANALYZING...</span>
+                                                    </div>
+                                                    <div className="w-full bg-blue-100 rounded-full h-1.5 mt-1">
+                                                        <div className="bg-blue-500 h-1.5 rounded-full animate-pulse"></div>
+                                                    </div>
                                                 </div>
                                             ) : (
-                                                <span className={color}>{text}</span>
+                                                <span className={`font-semibold ${color}`}>{text}</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 flex items-center gap-4">
-                                            {submission && (
+                                        <td className="px-6 py-4 flex items-center gap-4 flex-wrap">
+                                            {submission && !isAnalyzing && (
                                                 <>
-                                                    <button onClick={() => setViewingSubmission(submission)} disabled={isAnalyzing} className="flex items-center text-sm text-gray-500 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed" title="View Submission Content">
+                                                    <button onClick={() => setViewingSubmission(submission)} className="flex items-center text-sm text-gray-500 hover:text-gray-800" title="View Submission Content">
                                                         <DocumentTextIcon className="w-5 h-5 mr-1"/> View
                                                     </button>
+                                                     <button onClick={() => openFeedbackModal(submission)} className="flex items-center text-sm text-gray-500 hover:text-gray-800" title="Provide Feedback">
+                                                        <ChatBubbleLeftRightIcon className="w-5 h-5 mr-1"/> {submission.teacherFeedback ? 'Edit' : 'Add'} Feedback
+                                                    </button>
                                                     {!report ? (
-                                                        <button onClick={() => handleAnalyze(submission)} disabled={isAnalyzing} className="flex items-center text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed" title="Analyze Submission">
+                                                        <button onClick={() => handleAnalyze(submission)} className="flex items-center text-sm text-blue-600 hover:text-blue-800" title="Analyze Submission">
                                                             <DocumentMagnifyingGlassIcon className="w-5 h-5 mr-1"/> Analyze
                                                         </button>
                                                     ) : (
-                                                        <button onClick={() => setSelectedReport(report)} disabled={isAnalyzing} className="flex items-center text-sm text-indigo-600 hover:text-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed" title="View Analysis Report">
+                                                        <button onClick={() => setSelectedReport(report)} className="flex items-center text-sm text-indigo-600 hover:text-indigo-800" title="View Analysis Report">
                                                             <EyeIcon className="w-5 h-5 mr-1"/> Report
                                                         </button>
                                                     )}
@@ -480,6 +515,24 @@ const TeacherAssignmentDetailPage: React.FC = () => {
                 submission={viewingSubmission}
                 student={getStudentForSubmission(viewingSubmission)}
             />
+
+            <Modal isOpen={!!feedbackSubmission} onClose={closeFeedbackModal} title={`Feedback for ${students.find(s => s.id === feedbackSubmission?.studentId)?.name}`}>
+                <div>
+                    <label htmlFor="feedbackText" className="block text-sm font-medium text-gray-700 mb-2">Feedback Comments</label>
+                    <textarea
+                        id="feedbackText"
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        rows={6}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        placeholder="Provide constructive feedback for the student..."
+                    />
+                </div>
+                <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-gray-200">
+                    <button type="button" onClick={closeFeedbackModal} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 shadow-sm">Cancel</button>
+                    <button type="button" onClick={saveFeedback} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm">Save Feedback</button>
+                </div>
+            </Modal>
         </div>
     )
 };

@@ -85,6 +85,19 @@
         background-image: radial-gradient(#e0e7ff 1px, transparent 1px); /* A light indigo/blue-ish dot */
         background-size: 20px 20px;
       }
+
+      /* Accessibility utility */
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+      }
     </style>
     <!-- pdf.js for PDF parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>

@@ -79,10 +79,14 @@ const Header: React.FC = () => {
     return (
         <header className="h-20 bg-white/95 backdrop-blur-sm border-b border-gray-200 flex items-center justify-end px-8 flex-shrink-0">
             <div className="flex items-center">
-                <NavLink to="/dashboard/notifications" className="relative p-2 rounded-full hover:bg-gray-100 transition">
+                <NavLink 
+                  to="/dashboard/notifications" 
+                  className="relative p-2 rounded-full hover:bg-gray-100 transition"
+                  aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : 'View notifications'}
+                >
                   <BellIcon className="w-6 h-6 text-gray-500"/>
                   {unreadCount > 0 && (
-                        <span className="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${unreadCount} unread notifications`}>
+                        <span className="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" aria-hidden="true">
                             <span className="sr-only">{unreadCount} unread notifications</span>
                         </span>
                     )}

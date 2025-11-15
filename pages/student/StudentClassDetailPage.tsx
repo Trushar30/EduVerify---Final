@@ -2,10 +2,11 @@ import React, { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { useToast } from '../../context/ToastContext';
 import { Submission, Report } from '../../types';
 import Card from '../../components/ui/Card';
 import DoughnutChart from '../../components/ui/DoughnutChart';
-import { ArrowLeftIcon, SparklesIcon, DocumentTextIcon, UsersIcon, BellIcon, UserCircleIcon, LinkIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, SparklesIcon, DocumentTextIcon, UsersIcon, BellIcon, UserCircleIcon, LinkIcon, DocumentIcon, XCircleIcon, ArrowUpTrayIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 
 // Helper function to read file content based on file type
 const readFileContent = (file: File): Promise<string> => {
@@ -69,11 +70,35 @@ const fileToBase64 = (file: File): Promise<string> => {
     });
 };
 
+const formatFileSize = (bytes: number, decimals = 2) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+};
+
+const getFileTypeIcon = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    switch (extension) {
+        case 'pdf':
+            return <DocumentTextIcon className="w-6 h-6 text-red-500 flex-shrink-0" aria-label="PDF file" />;
+        case 'docx':
+            return <DocumentTextIcon className="w-6 h-6 text-blue-600 flex-shrink-0" aria-label="Word document" />;
+        case 'txt':
+            return <DocumentTextIcon className="w-6 h-6 text-gray-500 flex-shrink-0" aria-label="Text file" />;
+        default:
+            return <DocumentIcon className="w-6 h-6 text-gray-400 flex-shrink-0" aria-label="File" />;
+    }
+};
+
 
 const StudentClassDetailPage: React.FC = () => {
     const { classId } = useParams<{ classId: string }>();
     const { user } = useAuth();
     const { state, dispatch } = useData();
+    const { addToast } = useToast();
     const [activeTab, setActiveTab] = useState<'stream' | 'assignments' | 'people'>('assignments');
     
     // States for submission and feedback forms, keyed by assignment ID
@@ -81,27 +106,65 @@ const StudentClassDetailPage: React.FC = () => {
     const [uploadErrors, setUploadErrors] = useState<{ [key: string]: string | null }>({});
     const [feedbackMessages, setFeedbackMessages] = useState<{ [key: string]: string }>({});
     const [isSubmitting, setIsSubmitting] = useState<{ [key: string]: boolean }>({});
-    
+    const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+    const [dragOverStates, setDragOverStates] = useState<{ [key: string]: boolean }>({});
+    const [submissionStatusText, setSubmissionStatusText] = useState<{ [key: string]: string }>({});
+
     const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
     const currentClass = state.classes.find(c => c.id === classId);
 
     if (!user || !currentClass) return <div>Error loading class details.</div>;
+    
+    const handleFileAccepted = (file: File, assignmentId: string) => {
+        const allowedExtensions = ['.pdf', '.docx', '.txt'];
+        const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`;
 
+        if (allowedExtensions.includes(fileExtension)) {
+            setSelectedFiles(prev => ({ ...prev, [assignmentId]: file }));
+            setUploadErrors(prev => ({ ...prev, [assignmentId]: null }));
+        } else {
+            setUploadErrors(prev => ({ ...prev, [assignmentId]: 'Invalid file type. Please upload a .pdf, .docx, or .txt file.' }));
+            setSelectedFiles(prev => ({ ...prev, [assignmentId]: null }));
+            if (fileInputRefs.current[assignmentId]) {
+                fileInputRefs.current[assignmentId]!.value = "";
+            }
+        }
+    }
+    
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, assignmentId: string) => {
         if (event.target.files && event.target.files[0]) {
-            const file = event.target.files[0];
-            const allowedExtensions = ['.pdf', '.docx', '.txt'];
-            const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`;
+            handleFileAccepted(event.target.files[0], assignmentId);
+        }
+    };
 
-            if (allowedExtensions.includes(fileExtension)) {
-                setSelectedFiles(prev => ({ ...prev, [assignmentId]: file }));
-                setUploadErrors(prev => ({ ...prev, [assignmentId]: null })); // Clear any existing error
-            } else {
-                setUploadErrors(prev => ({ ...prev, [assignmentId]: 'Invalid file type. Please upload a .pdf, .docx, or .txt file.' }));
-                setSelectedFiles(prev => ({ ...prev, [assignmentId]: null })); // Clear invalid file
-                event.target.value = ''; // Reset the file input
-            }
+    const handleDragEnter = (e: React.DragEvent<HTMLDivElement>, assignmentId: string) => {
+        e.preventDefault();
+        setDragOverStates(prev => ({ ...prev, [assignmentId]: true }));
+    };
+
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>, assignmentId: string) => {
+        e.preventDefault();
+        setDragOverStates(prev => ({ ...prev, [assignmentId]: false }));
+    };
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault(); // This is necessary to allow dropping
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>, assignmentId: string) => {
+        e.preventDefault();
+        setDragOverStates(prev => ({ ...prev, [assignmentId]: false }));
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFileAccepted(e.dataTransfer.files[0], assignmentId);
+        }
+    };
+
+
+    const handleRemoveFile = (assignmentId: string) => {
+        setSelectedFiles(prev => ({ ...prev, [assignmentId]: null }));
+        if (fileInputRefs.current[assignmentId]) {
+            fileInputRefs.current[assignmentId]!.value = "";
         }
     };
     
@@ -110,12 +173,45 @@ const StudentClassDetailPage: React.FC = () => {
         if (!selectedFile) return;
 
         setIsSubmitting(prev => ({ ...prev, [assignmentId]: true }));
+        setUploadProgress(prev => ({ ...prev, [assignmentId]: 0 }));
+        setSubmissionStatusText(prev => ({ ...prev, [assignmentId]: 'Verifying file...' }));
+
+
+        // Simulate progress and status updates
+        const progressInterval = setInterval(() => {
+            setUploadProgress(prev => {
+                const currentProgress = prev[assignmentId] || 0;
+                if (currentProgress >= 95) {
+                    clearInterval(progressInterval);
+                    return { ...prev, [assignmentId]: 95 };
+                }
+                return { ...prev, [assignmentId]: currentProgress + Math.floor(Math.random() * 10) + 5 };
+            });
+        }, 200);
+
+        const statuses = ["Preparing submission...", "Sending to EduVerify...", "Finalizing..."];
+        let statusIndex = 0;
+        const statusInterval = setInterval(() => {
+            if (statusIndex < statuses.length) {
+                setSubmissionStatusText(prev => ({ ...prev, [assignmentId]: statuses[statusIndex] }));
+                statusIndex++;
+            } else {
+                clearInterval(statusInterval);
+            }
+        }, 600);
+
 
         try {
             const [fileContent, fileData] = await Promise.all([
                 readFileContent(selectedFile),
                 fileToBase64(selectedFile)
             ]);
+            
+            clearInterval(progressInterval);
+            clearInterval(statusInterval);
+            setUploadProgress(prev => ({ ...prev, [assignmentId]: 100 }));
+            setSubmissionStatusText(prev => ({ ...prev, [assignmentId]: "Complete!" }));
+
 
             const newSubmission: Submission = {
                 id: `sub-${Date.now()}`,
@@ -127,16 +223,22 @@ const StudentClassDetailPage: React.FC = () => {
                 mimeType: selectedFile.type || 'application/octet-stream',
                 submittedAt: new Date().toISOString(),
             };
-            dispatch({ type: 'ADD_SUBMISSION', payload: newSubmission });
-            setSelectedFiles(prev => ({ ...prev, [assignmentId]: null }));
-            if(fileInputRefs.current[assignmentId]) {
-                fileInputRefs.current[assignmentId]!.value = "";
-            }
+
+            // Short delay to show 100% completion before UI changes
+            setTimeout(() => {
+                dispatch({ type: 'ADD_SUBMISSION', payload: newSubmission });
+                addToast('Submission successful!', 'success');
+                setIsSubmitting(prev => ({...prev, [assignmentId]: false}));
+            }, 500);
+
         } catch (error) {
+            clearInterval(progressInterval);
+            clearInterval(statusInterval);
             console.error("Error processing submission:", error);
-            alert(`An error occurred: ${error}`); // Simple error feedback
-        } finally {
+            addToast(`${error}`, 'error');
             setIsSubmitting(prev => ({ ...prev, [assignmentId]: false }));
+            setUploadProgress(prev => ({ ...prev, [assignmentId]: 0 }));
+            setSubmissionStatusText(prev => ({ ...prev, [assignmentId]: '' }));
         }
     };
 
@@ -152,6 +254,7 @@ const StudentClassDetailPage: React.FC = () => {
                 message: feedbackMessage,
             }
         });
+        addToast('Feedback sent successfully!', 'success');
         setFeedbackMessages(prev => ({ ...prev, [reportId]: '' }));
     };
 
@@ -193,6 +296,11 @@ const StudentClassDetailPage: React.FC = () => {
                             const isPastDeadline = new Date() > new Date(a.deadline);
                             const uploadError = uploadErrors[a.id];
 
+                            const isCurrentlySubmitting = isSubmitting[a.id];
+                            const progress = uploadProgress[a.id] || 0;
+                            const selectedFile = selectedFiles[a.id];
+                            const isDraggingOver = dragOverStates[a.id];
+
                             return (
                                 <Card key={a.id} className="!p-0 overflow-hidden">
                                     <div className="p-6">
@@ -205,24 +313,78 @@ const StudentClassDetailPage: React.FC = () => {
                                     <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
                                         {!submission ? (
                                             isPastDeadline ? <p className="text-red-500 font-semibold">Deadline has passed.</p> :
-                                            <div>
-                                                <div className="flex items-center gap-4">
-                                                    <input 
-                                                        type="file" 
-                                                        ref={el => fileInputRefs.current[a.id] = el} 
-                                                        onChange={(e) => handleFileChange(e, a.id)} 
-                                                        className="text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                                        accept=".txt,.pdf,.docx"
-                                                    />
-                                                    <button onClick={() => handleSubmit(a.id)} disabled={!selectedFiles[a.id] || isSubmitting[a.id]} className="bg-blue-600 text-white px-4 py-2 text-sm rounded-md hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed w-28 text-center shadow-sm">
-                                                        {isSubmitting[a.id] ? 'Submitting...' : 'Submit'}
+                                            isCurrentlySubmitting ? (
+                                                <div className="text-center">
+                                                    <p className="text-sm font-semibold text-gray-700 mb-2">Submitting: <span className="font-normal">{selectedFile?.name}</span></p>
+                                                    <div className="w-full bg-gray-200 rounded-full h-2.5 my-2">
+                                                        <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${progress}%`, transition: 'width 0.2s ease-in-out' }}></div>
+                                                    </div>
+                                                    <div className="flex justify-between text-xs text-gray-500">
+                                                        <span>{submissionStatusText[a.id] || 'Starting...'}</span>
+                                                        <span>{Math.round(progress)}%</span>
+                                                    </div>
+                                                </div>
+                                            ) : selectedFile ? (
+                                                <div>
+                                                    <div className="flex items-center justify-between p-2 bg-white border border-gray-300 rounded-lg">
+                                                        <div className="flex items-center gap-3 overflow-hidden">
+                                                            {getFileTypeIcon(selectedFile.name)}
+                                                            <div className="overflow-hidden">
+                                                                <p className="text-sm font-semibold text-gray-800 truncate">{selectedFile.name}</p>
+                                                                <p className="text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                                                            </div>
+                                                        </div>
+                                                        <button onClick={() => handleRemoveFile(a.id)} aria-label="Remove file">
+                                                            <XCircleIcon className="w-6 h-6 text-gray-400 hover:text-red-500 transition-colors" />
+                                                        </button>
+                                                    </div>
+                                                    <button onClick={() => handleSubmit(a.id)} className="w-full mt-3 bg-blue-600 text-white px-4 py-2 text-sm font-semibold rounded-md hover:bg-blue-700 transition shadow-sm">
+                                                        Submit Assignment
                                                     </button>
                                                 </div>
-                                                {uploadError && <p className="text-red-500 text-sm mt-2">{uploadError}</p>}
-                                            </div>
+                                            ) : (
+                                                <div>
+                                                    <div
+                                                        onDragEnter={(e) => handleDragEnter(e, a.id)}
+                                                        onDragLeave={(e) => handleDragLeave(e, a.id)}
+                                                        onDragOver={handleDragOver}
+                                                        onDrop={(e) => handleDrop(e, a.id)}
+                                                        onClick={() => fileInputRefs.current[a.id]?.click()}
+                                                        className={`relative flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-200 ease-in-out ${isDraggingOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-100'}`}
+                                                    >
+                                                        <input
+                                                            id={`file-upload-${a.id}`}
+                                                            type="file"
+                                                            className="sr-only"
+                                                            ref={el => fileInputRefs.current[a.id] = el}
+                                                            onChange={(e) => handleFileChange(e, a.id)}
+                                                            accept=".txt,.pdf,.docx"
+                                                        />
+                                                        <ArrowUpTrayIcon className={`w-8 h-8 mb-2 ${isDraggingOver ? 'text-blue-600' : 'text-gray-400'}`} />
+                                                        <p className="text-sm font-semibold text-gray-700">
+                                                            <span className="text-blue-600">Click to upload</span> or drag and drop
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">PDF, DOCX, or TXT</p>
+                                                    </div>
+                                                    {uploadError && <p className="text-red-500 text-sm mt-2">{uploadError}</p>}
+                                                </div>
+                                            )
                                         ) : (
                                             <div>
                                                 <p className="text-green-600 text-sm font-semibold">Submitted: {submission.fileName}</p>
+
+                                                {submission.teacherFeedback && (
+                                                    <div className="mt-4 pt-4 border-t border-gray-200">
+                                                        <h4 className="font-semibold text-lg mb-2 text-gray-800 flex items-center">
+                                                            <ChatBubbleLeftRightIcon className="w-6 h-6 mr-2 text-indigo-500" />
+                                                            Teacher's Feedback
+                                                        </h4>
+                                                        <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                                                            <p className="text-gray-700 whitespace-pre-wrap">{submission.teacherFeedback}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 {report?.status === 'PUBLISHED' ? (
                                                     <div className="mt-4 pt-4 border-t border-gray-200">
                                                         <h4 className="font-semibold text-lg mb-4 text-gray-800">Your Report</h4>

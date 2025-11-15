@@ -6,6 +6,27 @@ export enum Role {
   STUDENT = 'STUDENT',
 }
 
+export enum AchievementType {
+    FIRST_SUBMISSION = 'FIRST_SUBMISSION',
+    ON_TIME_SUBMISSION = 'ON_TIME_SUBMISSION',
+    INTEGRITY_ACE = 'INTEGRITY_ACE',
+    STREAK_3 = 'STREAK_3',
+    STREAK_5 = 'STREAK_5',
+    MOST_IMPROVED = 'MOST_IMPROVED',
+    PROACTIVE_PLANNER = 'PROACTIVE_PLANNER',
+    PERFECT_SCORE = 'PERFECT_SCORE',
+    FEEDBACK_PROVIDER = 'FEEDBACK_PROVIDER',
+}
+
+export interface Achievement {
+    id: string;
+    type: AchievementType;
+    name: string;
+    description: string;
+    icon: string;
+    unlockedAt: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -13,10 +34,11 @@ export interface User {
   role: Role;
   classIds: string[];
   active?: boolean; // Added for deactivation
+  achievements: Achievement[];
 }
 
 // For forms, password isn't part of the main User model
-export type UserDetails = Omit<User, 'id' | 'classIds' | 'active'> & { id?: string, password?: string };
+export type UserDetails = Omit<User, 'id' | 'classIds' | 'active' | 'achievements'> & { id?: string, password?: string };
 
 export interface Class {
   id: string;
@@ -46,6 +68,7 @@ export interface Submission {
   mimeType?: string; // e.g., 'application/pdf'
   submittedAt: string;
   reportId?: string;
+  teacherFeedback?: string;
 }
 
 export interface PlagiarizedSource {
@@ -82,6 +105,8 @@ export enum NotificationType {
     REPORT_PUBLISHED = 'REPORT_PUBLISHED',
     NEW_ASSIGNMENT = 'NEW_ASSIGNMENT',
     NEW_FEEDBACK = 'NEW_FEEDBACK',
+    ACHIEVEMENT_UNLOCKED = 'ACHIEVEMENT_UNLOCKED',
+    TEACHER_FEEDBACK = 'TEACHER_FEEDBACK',
 }
 
 export interface Notification {

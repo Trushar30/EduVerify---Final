@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
-import { Assignment } from '../../types';
+import { Assignment, User } from '../../types';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
-import { PlusIcon, ArrowLeftIcon, UsersIcon, DocumentTextIcon, ChatBubbleLeftEllipsisIcon, SparklesIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ArrowLeftIcon, UsersIcon, DocumentTextIcon, ChatBubbleLeftEllipsisIcon, SparklesIcon, TrashIcon, TrophyIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import StudentAchievementsModal from '../../components/ui/StudentAchievementsModal';
+import ClassAnalyticsTab from '../../components/analytics/ClassAnalyticsTab';
 
 const CreateAssignmentForm: React.FC<{ classId: string, onSave: (assignment: Omit<Assignment, 'id'>) => void, onCancel: () => void }> = ({ classId, onSave, onCancel }) => {
     const [title, setTitle] = useState('');
@@ -44,7 +46,8 @@ const TeacherClassDetailPage: React.FC = () => {
     const { user } = useAuth();
     const { state, dispatch } = useData();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'stream' | 'assignments' | 'people'>('stream');
+    const [activeTab, setActiveTab] = useState<'stream' | 'assignments' | 'people' | 'analytics'>('stream');
+    const [viewingStudentAchievements, setViewingStudentAchievements] = useState<User | null>(null);
     
     const currentClass = state.classes.find(c => c.id === classId);
     
@@ -58,8 +61,8 @@ const TeacherClassDetailPage: React.FC = () => {
         setIsModalOpen(false);
     }
 
-    const handleRemoveStudent = (studentId: string) => {
-        if (window.confirm('Are you sure you want to remove this student from the class?')) {
+    const handleRemoveStudent = (studentId: string, studentName: string) => {
+        if (window.confirm(`Are you sure you want to remove ${studentName} from the class?`)) {
             dispatch({ type: 'REMOVE_STUDENT', payload: { classId: currentClass.id, studentId } });
         }
     }
@@ -157,9 +160,17 @@ const TeacherClassDetailPage: React.FC = () => {
                         <p className="text-gray-800">{student.name}</p>
                         <p className="text-sm text-gray-500">{student.email}</p>
                     </div>
-                    <button onClick={() => handleRemoveStudent(student.id)} className="text-gray-400 hover:text-red-500 transition">
-                        <TrashIcon className="w-5 h-5" />
-                    </button>
+                     <div className="flex items-center gap-4">
+                        {student.achievements && student.achievements.length > 0 && (
+                            <button onClick={() => setViewingStudentAchievements(student)} className="flex items-center text-sm font-semibold text-amber-600 hover:text-amber-700 bg-amber-100 px-3 py-1 rounded-full transition">
+                                <TrophyIcon className="w-4 h-4 mr-1.5" />
+                                {student.achievements.length}
+                            </button>
+                        )}
+                        <button onClick={() => handleRemoveStudent(student.id, student.name)} className="text-gray-400 hover:text-red-500 transition" aria-label={`Remove ${student.name} from the class`}>
+                            <TrashIcon className="w-5 h-5" />
+                        </button>
+                    </div>
                 </li>
             ))}
              {students.length === 0 && <p className="text-gray-500 text-center py-8">No students have joined this class yet.</p>}
@@ -171,6 +182,7 @@ const TeacherClassDetailPage: React.FC = () => {
         { id: 'stream', name: 'Stream', icon: SparklesIcon },
         { id: 'assignments', name: 'Assignments', icon: DocumentTextIcon },
         { id: 'people', name: 'People', icon: UsersIcon },
+        { id: 'analytics', name: 'Analytics', icon: ChartBarIcon },
     ];
 
     return (
@@ -210,11 +222,18 @@ const TeacherClassDetailPage: React.FC = () => {
                 {activeTab === 'stream' && renderStream()}
                 {activeTab === 'assignments' && renderAssignments()}
                 {activeTab === 'people' && renderPeople()}
+                {activeTab === 'analytics' && <ClassAnalyticsTab classId={currentClass.id} />}
             </Card>
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Assignment">
                 <CreateAssignmentForm classId={currentClass.id} onSave={handleCreateAssignment} onCancel={() => setIsModalOpen(false)}/>
             </Modal>
+
+            <StudentAchievementsModal 
+                isOpen={!!viewingStudentAchievements}
+                onClose={() => setViewingStudentAchievements(null)}
+                student={viewingStudentAchievements}
+            />
         </div>
     );
 };

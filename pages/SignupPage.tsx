@@ -34,6 +34,7 @@ const SignupPage: React.FC = () => {
       email,
       role,
       classIds: [],
+      achievements: [],
     };
 
     // Add user to the data context

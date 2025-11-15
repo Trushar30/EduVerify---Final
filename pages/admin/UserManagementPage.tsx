@@ -71,7 +71,8 @@ const UserManagementPage: React.FC = () => {
                 email: user.email,
                 role: user.role,
                 classIds: [],
-                active: true
+                active: true,
+                achievements: [],
             };
             dispatch({ type: 'ADD_USER', payload: newUser });
         }
@@ -102,12 +103,13 @@ const UserManagementPage: React.FC = () => {
                             <td className="px-6 py-4">{user.role}</td>
                             <td className="px-6 py-4">
                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                    <span className="sr-only">{user.active ? 'Status: Active' : 'Status: Inactive'}</span>
                                     {user.active ? 'Active' : 'Inactive'}
                                 </span>
                             </td>
                             <td className="px-6 py-4 flex gap-4">
-                                <button onClick={() => handleOpenEditModal(user)} className="text-gray-500 hover:text-blue-600"><PencilIcon className="w-5 h-5"/></button>
-                                <button onClick={() => handleToggleStatus(user.id)} className={user.active ? 'text-gray-500 hover:text-red-600' : 'text-gray-500 hover:text-green-600'}>
+                                <button onClick={() => handleOpenEditModal(user)} className="text-gray-500 hover:text-blue-600" aria-label={`Edit user ${user.name}`}><PencilIcon className="w-5 h-5"/></button>
+                                <button onClick={() => handleToggleStatus(user.id)} className={user.active ? 'text-gray-500 hover:text-red-600' : 'text-gray-500 hover:text-green-600'} aria-label={user.active ? `Deactivate user ${user.name}` : `Activate user ${user.name}`}>
                                     {user.active ? <XMarkIcon className="w-5 h-5"/> : <CheckIcon className="w-5 h-5"/>}
                                 </button>
                             </td>

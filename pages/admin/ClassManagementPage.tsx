@@ -31,12 +31,13 @@ const AdminClassManagementPage: React.FC = () => {
                             <td className="px-6 py-4 font-mono text-gray-700">{cls.joinCode}</td>
                             <td className="px-6 py-4">
                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${!cls.archived ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                    <span className="sr-only">{!cls.archived ? 'Status: Active' : 'Status: Archived'}</span>
                                     {!cls.archived ? 'Active' : 'Archived'}
                                 </span>
                             </td>
                             <td className="px-6 py-4">
                                 {!cls.archived && (
-                                    <button onClick={() => handleArchive(cls.id)} className="text-gray-500 hover:text-amber-600" title="Archive Class">
+                                    <button onClick={() => handleArchive(cls.id)} className="text-gray-500 hover:text-amber-600" title="Archive Class" aria-label={`Archive class ${cls.name}`}>
                                         <ArchiveBoxIcon className="w-5 h-5"/>
                                     </button>
                                 )}

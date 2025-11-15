@@ -45,7 +45,7 @@ const ClassCard: React.FC<{ classItem: Class; onEdit: () => void; onArchive: () 
                         <h2 className="text-xl font-bold truncate pr-8 text-gray-800">{classItem.name}</h2>
                     </Link>
                     <div className="relative">
-                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(!menuOpen); }} className="p-1 rounded-full text-gray-500 hover:bg-gray-100">
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen(!menuOpen); }} className="p-1 rounded-full text-gray-500 hover:bg-gray-100" aria-haspopup="true" aria-expanded={menuOpen} aria-label={`Actions for class ${classItem.name}`}>
                             <EllipsisVerticalIcon className="w-6 h-6"/>
                         </button>
                         {menuOpen && (
