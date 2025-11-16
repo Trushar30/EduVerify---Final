@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Agrandir:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
       @keyframes fadeIn {
         from { opacity: 0; }
@@ -73,9 +73,62 @@
         animation: float3D 8s ease-in-out infinite, pulseGlow 4s ease-in-out infinite;
       }
 
+      /* Team Card Animations */
+      @keyframes cardSlideUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes cardHoverLift {
+        0% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-8px) scale(1.02); }
+        100% { transform: translateY(0) scale(1); }
+      }
+
+      @keyframes imageBounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+      }
+
+      @keyframes borderGlow {
+        0%, 100% {
+          box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.2);
+        }
+        50% {
+          box-shadow: 0 0 15px 2px rgba(30, 144, 255, 0.3);
+        }
+      }
+
+      .team-card {
+        animation: cardSlideUp 0.6s ease-out forwards;
+        opacity: 0;
+      }
+
+      .team-card:nth-child(1) { animation-delay: 0.1s; }
+      .team-card:nth-child(2) { animation-delay: 0.3s; }
+      .team-card:nth-child(3) { animation-delay: 0.5s; }
+
+      .team-card:hover {
+        animation: cardHoverLift 0.5s ease-in-out forwards;
+      }
+
+      .team-card:hover .team-image {
+        animation: imageBounce 0.6s ease-in-out infinite;
+      }
+
+      .team-card:hover {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      }
+
 
       body {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Agrandir', 'Inter', sans-serif;
         background-color: #f9fafb; /* bg-gray-50 */
         color: #1f2937; /* bg-gray-800 */
         -webkit-font-smoothing: antialiased;

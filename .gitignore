@@ -12,6 +12,22 @@ dist
 dist-ssr
 *.local
 
+# Local file uploads (don't commit user files)
+uploads/temp/*
+uploads/cache/*
+uploads/exports/*
+
+# Keep directory structure
+!uploads/.gitkeep
+!uploads/temp/.gitkeep
+!uploads/cache/.gitkeep
+!uploads/exports/.gitkeep
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

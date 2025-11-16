@@ -11,29 +11,35 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { state } = useData(); // Use the state from DataContext
-  const [user, setUser] = useState<User | null>(() => {
-    const storedUser = localStorage.getItem('eduverify_user');
-    return storedUser ? JSON.parse(storedUser) : null;
-  });
+  const [user, setUser] = useState<User | null>(null);
 
-  const login = (email: string) => {
-    // Search in the dynamic user list from DataContext state
-    const foundUser = state.users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (foundUser) {
-      setUser(foundUser);
-      localStorage.setItem('eduverify_user', JSON.stringify(foundUser));
-      return true;
+  // Use Supabase Auth for login
+  const login = async (email: string, password: string) => {
+    const { supabase } = await import('../services/supabaseClient');
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) {
+      setUser(null);
+      return false;
     }
-    return false;
+    // Optionally fetch user profile from users table
+    setUser({
+      id: data.user.id,
+      name: data.user.user_metadata?.name || '',
+      email: data.user.email || '',
+      role: data.user.user_metadata?.role || 'student',
+      classIds: [],
+      achievements: [],
+    });
+    return true;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const { supabase } = await import('../services/supabaseClient');
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('eduverify_user');
   };
 
-  const value = useMemo(() => ({ user, login, logout }), [user, state.users]);
+  const value = useMemo(() => ({ user, login, logout }), [user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

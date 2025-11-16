@@ -1,35 +1,8 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { User, Role, Class, Assignment, Submission, Report, Feedback, Notification, UserDetails, NotificationType } from '../types';
-import { DUMMY_USERS } from '../data/dummyData'; // Import from a separate file
 import { checkAndAwardAchievements } from '../services/achievementService';
 
 // Dummy Data
-export const DUMMY_CLASSES: Class[] = [
-    { id: 'class1', name: 'Advanced Quantum Physics', teacherId: 'teacher1', studentIds: ['student1', 'student2'], joinCode: 'QPHYS789', archived: false, classTheme: 'border-blue-500' }
-];
-
-const DUMMY_ASSIGNMENTS: Assignment[] = [
-    { id: 'assign1', classId: 'class1', title: 'Schrödinger Equation Analysis', instructions: 'Submit a 5-page paper on the time-dependent Schrödinger equation.', deadline: '2025-11-15T23:59:59' }
-];
-
-const DUMMY_SUBMISSIONS: Submission[] = [
-    { id: 'sub1', assignmentId: 'assign1', studentId: 'student1', fileName: 'alex_johnson_schrodinger.txt', fileContent: 'The time-dependent Schrödinger equation is a fundamental equation in quantum mechanics. It describes how the quantum state of a physical system changes over time. Some say the sky is blue because of Rayleigh scattering.', submittedAt: '2025-11-14T10:00:00', reportId: 'report1', mimeType: 'text/plain' },
-    { id: 'sub2', assignmentId: 'assign1', studentId: 'student2', fileName: 'maria_garcia_analysis.txt', fileContent: 'Artificial intelligence is rapidly changing the world. This paper explores the implications of AI in modern physics research. The Schrödinger equation is a cornerstone of this field.', submittedAt: '2025-11-14T11:30:00', mimeType: 'text/plain' },
-];
-
-const DUMMY_REPORTS: Report[] = [
-    // Fix: Added missing 'sourceType' property to satisfy the PlagiarizedSource interface.
-    { id: 'report1', submissionId: 'sub1', plagiarismScore: 25, aiContentScore: 10, analysisSummary: 'Minor plagiarism detected from common sources. The content appears to be original otherwise.', plagiarizedSources: [{ source: 'wikipedia.org/wiki/Rayleigh_scattering', snippet: 'the sky is blue because of Rayleigh scattering', confidence: 95, sourceType: 'EXTERNAL' }], status: 'PUBLISHED', generatedAt: '2025-11-14T15:00:00' }
-];
-
-const DUMMY_FEEDBACK: Feedback[] = [
-    { id: 'fb1', reportId: 'report1', studentId: 'student1', teacherId: 'teacher1', message: 'Thank you for the feedback. I will be more careful with my citations next time.', timestamp: '2025-11-16T09:00:00' }
-];
-
-const DUMMY_NOTIFICATIONS: Notification[] = [
-    { id: 'notif1', userId: 'student1', message: 'Your report for "Schrödinger Equation Analysis" has been published.', timestamp: '2025-11-15T18:00:00', read: false, type: NotificationType.REPORT_PUBLISHED, linkTo: '/dashboard/classes/class1' },
-    { id: 'notif2', userId: 'teacher1', message: 'Alex Johnson submitted feedback on their report.', timestamp: '2025-11-16T09:01:00', read: false, type: NotificationType.NEW_FEEDBACK, linkTo: '/dashboard/classes/class1/assignments/assign1' }
-];
 
 interface DataState {
     users: User[];
@@ -69,13 +42,13 @@ const classThemes = [
 
 
 const initialState: DataState = {
-    users: DUMMY_USERS,
-    classes: DUMMY_CLASSES,
-    assignments: DUMMY_ASSIGNMENTS,
-    submissions: DUMMY_SUBMISSIONS,
-    reports: DUMMY_REPORTS,
-    feedback: DUMMY_FEEDBACK,
-    notifications: DUMMY_NOTIFICATIONS,
+    users: [],
+    classes: [],
+    assignments: [],
+    submissions: [],
+    reports: [],
+    feedback: [],
+    notifications: [],
 };
 
 function dataReducer(state: DataState, action: Action): DataState {

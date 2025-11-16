@@ -91,6 +91,21 @@ export interface Report {
   generatedAt: string;
 }
 
+export interface AnalysisReport {
+  id: string;
+  submissionId: string;
+  analysisType: 'plagiarism' | 'ai_detection' | 'both';
+  plagiarismScore?: number;
+  plagiarismSources?: any;
+  aiProbability?: number;
+  aiDetails?: any;
+  integrityStatus: 'excellent' | 'good' | 'warning' | 'flagged';
+  flaggedSections?: any;
+  analyzedAt?: string;
+  modelVersion?: string;
+  rawResponse?: any;
+}
+
 export interface Feedback {
   id: string;
   reportId: string;

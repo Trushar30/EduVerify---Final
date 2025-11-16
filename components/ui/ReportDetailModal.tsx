@@ -211,7 +211,7 @@ const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ isOpen, onClose, 
                     )}
                 </button>
                 <div className="flex gap-3">
-                    <button onClick={onClose} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 shadow-sm">Close</button>
+                    <button onClick={onClose} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 shadow-sm">Cancel</button>
                     {report.status === 'PENDING' && (
                         <button onClick={() => onPublish(report.id, student.id)} className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 shadow-sm">Publish Report</button>
                     )}
